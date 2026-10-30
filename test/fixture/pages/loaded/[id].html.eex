@@ -1,0 +1,4 @@
+---
+title: Front matter title
+---
+<h1><%= @title %></h1><p>Item <%= @item %> for <%= @user %></p>

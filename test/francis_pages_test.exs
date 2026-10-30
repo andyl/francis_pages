@@ -22,12 +22,14 @@ defmodule FrancisPagesTest do
           {"/tags/elixir", "<li>item <em>1</em></li>\n<li>item <em>2</em></li>"},
           {"/tags/%3Cb%3E", "Pages tagged &lt;b&gt;"},
           {"/about", "<title>About us</title>"},
-          {"/", "<title>My site</title>"},
+          {"/", "<title>Plug title</title>"},
+          {"/", "<p>Hi Ann</p>"},
           {"/tags/x", "<title>Tags</title>"},
           {"/team", "<title>Team</title><"},
           {"/team", "<h1>Team</h1>\n<li>Ann (dev)</li><li>Bob (ops)</li>"},
           {"/raw/empty", "<p>empty fm</p>"},
-          {"/plain", "<p>No <strong>assigns</strong>.</p>"}
+          {"/plain", "<p>No <strong>assigns</strong>.</p>"},
+          {"/loaded/abc", "<h1>Loader title</h1><p>Item ABC for Ann</p>"}
         ] do
       conn = call(path)
       assert conn.status == 200, path
@@ -38,6 +40,15 @@ defmodule FrancisPagesTest do
     assert call("/nope").status == 404
     assert Plug.Conn.get_resp_header(call("/"), "content-type") == ["text/html; charset=utf-8"]
     assert FrancisPages.TestRouter.__mix_recompile__?() == false
+  end
+
+  test ":assigns loader" do
+    conn = conn(:get, "/")
+    assert FrancisPages.load_assigns(nil, conn) == []
+    assert FrancisPages.load_assigns(fn _ -> [a: 1] end, conn) == [a: 1]
+    assert FrancisPages.load_assigns(fn _ -> %{a: 1} end, conn) == [a: 1]
+    assert_raise ArgumentError, fn -> FrancisPages.load_assigns(fn _ -> %{conn: 1} end, conn) end
+    assert_raise ArgumentError, fn -> FrancisPages.load_assigns(fn _ -> :nope end, conn) end
   end
 
   test "route mapping" do

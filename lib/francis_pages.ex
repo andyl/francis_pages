@@ -22,6 +22,7 @@ defmodule FrancisPages do
   defmacro pages(prefix, opts) do
     dir = Keyword.fetch!(opts, :from)
     layout = Keyword.get(opts, :layout)
+    loader = Keyword.get(opts, :assigns)
 
     unless is_binary(prefix) and is_binary(dir) and (is_nil(layout) or is_binary(layout)) do
       raise ArgumentError, "pages/2 needs string literals for the prefix, :from and :layout"
@@ -46,7 +47,13 @@ defmodule FrancisPages do
           unquote(page_def(page_fun, file, body, line))
 
           get(unquote(route), fn conn ->
-            assigns = [conn: conn, params: conn.params] ++ unquote(Macro.escape(front_matter))
+            # Keyword lookups take the first match: the loader beats front matter,
+            # which beats plug assigns
+            assigns =
+              [conn: conn, params: conn.params] ++
+                FrancisPages.load_assigns(unquote(loader), conn) ++
+                unquote(Macro.escape(front_matter)) ++ Map.to_list(conn.assigns)
+
             inner = unquote(page_fun)(assigns)
             html = unquote(layout_fun)(Keyword.put(assigns, :inner_content, inner))
             FrancisPages.respond(conn, html)
@@ -96,6 +103,30 @@ defmodule FrancisPages do
     end
 
     Path.join(["/", prefix | segments])
+  end
+
+  @doc "Calls the `:assigns` loader of a `pages/2` call and checks what it returns."
+  def load_assigns(nil, _conn), do: []
+
+  def load_assigns(loader, conn) do
+    assigns =
+      case loader.(conn) do
+        map when is_map(map) ->
+          Map.to_list(map)
+
+        list when is_list(list) ->
+          list
+
+        other ->
+          raise ArgumentError,
+                "pages: :assigns must return a keyword list or map, got: #{inspect(other)}"
+      end
+
+    for {key, _} <- assigns, key in @reserved do
+      raise ArgumentError, "pages: :assigns can't set @#{key}"
+    end
+
+    assigns
   end
 
   def respond(conn, html) do
