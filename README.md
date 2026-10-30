@@ -17,6 +17,21 @@ end
 Pages can be `.html`, `.md`, `.html.eex` or `.md.eex`, with optional YAML
 front matter. `[slug]` and `[...path]` file names become dynamic routes.
 
+A layout is an EEx file in the layouts directory, named after the layout
+(`layouts/app.html.eex` for `layout: "app"`). `@inner_content` is the
+rendered page:
+
+```eex
+<html>
+  <head>
+    <title>My site</title>
+  </head>
+  <body>
+    <%= @inner_content %>
+  </body>
+</html>
+```
+
 ## Installation
 
 Not published to Hex. Add it as a path or GitHub dependency:
