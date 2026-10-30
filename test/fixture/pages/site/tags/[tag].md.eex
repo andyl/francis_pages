@@ -1,0 +1,8 @@
+---
+title: Tags
+intro: Pages tagged
+---
+# <%= @intro %> <%= Francis.HTML.escape(@params["tag"]) %>
+
+<%= for n <- 1..2 do %>- item *<%= n %>*
+<% end %>

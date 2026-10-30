@@ -1,0 +1,1 @@
+<p>Catch-all: <%= Francis.HTML.escape(Enum.join(@params["path"], "/")) %></p>

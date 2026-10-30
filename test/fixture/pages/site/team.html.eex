@@ -1,0 +1,10 @@
+---
+title: Team
+people:
+  - name: Ann
+    role: dev
+  - name: Bob
+    role: ops
+---
+<h1><%= @title %></h1>
+<%= for p <- @people do %><li><%= p["name"] %> (<%= p["role"] %>)</li><% end %>

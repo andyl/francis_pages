@@ -1,0 +1,1 @@
+<html><head><title><%= assigns[:title] || "My site" %></title></head><body><nav>app</nav><%= @inner_content %></body></html>
