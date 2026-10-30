@@ -14,6 +14,8 @@ defmodule MyApp do
 end
 ```
 
+## Pages 
+
 Pages can be `.html`, `.md`, `.html.eex` or `.md.eex`, with optional YAML
 front matter. `[slug]` and `[...path]` file names become dynamic routes.
 
