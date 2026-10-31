@@ -146,6 +146,36 @@ user. Two things to know:
 - It runs for every request, including hand-written `get` routes, so skip
   costly lookups for paths that don't need them.
 
+## Listing pages
+
+`use FrancisPages` defines `list_pages/0` in your router. It returns a
+`{title, path}` tuple for each page, which is handy for building a nav-bar
+that stays in step with the pages directory:
+
+```elixir
+MyApp.list_pages()
+#=> [{"Home", "/"}, {"About us", "/about"}, {"Team", "/team"}]
+```
+
+- The title is the page's front matter `title`, or its path if it has none.
+  A title from an `:assigns` loader or a plug depends on the request, so it
+  isn't known when the list is built: put the nav title in front matter.
+- Dynamic pages (`[slug]`, `[...path]`) are left out, since they have no
+  single path to link to.
+- Pages come in the order of the `pages` calls, and by path within a call.
+
+Layouts are compiled into the router, so a layout can call `list_pages()`
+directly:
+
+```eex
+<!-- layouts/app.html.eex -->
+<nav>
+  <%= for {title, path} <- list_pages() do %>
+    <a href="<%= path %>"><%= Francis.HTML.escape(title) %></a>
+  <% end %>
+</nav>
+```
+
 ## Installation
 
 Not published to Hex. Add it as a path or GitHub dependency:

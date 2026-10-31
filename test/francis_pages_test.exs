@@ -14,7 +14,8 @@ defmodule FrancisPagesTest do
           {"/blog/new", "New post form"},
           {"/blog/hello", "Post hello"},
           {"/blog/%3Cb%3E", "Post &lt;b&gt;"},
-          {"/notes", "<nav>notes</nav><h1>Notes</h1>"},
+          {"/notes",
+           ~s(<a href="/notes/elixir/macros">/notes/elixir/macros</a></nav><h1>Notes</h1>)},
           {"/notes/elixir/macros", "<h1>Macros</h1>"},
           {"/notes/a/b/c", "Catch-all: a/b/c"},
           {"/raw", "<p>raw page</p>"},
@@ -49,6 +50,21 @@ defmodule FrancisPagesTest do
     assert FrancisPages.load_assigns(fn _ -> %{a: 1} end, conn) == [a: 1]
     assert_raise ArgumentError, fn -> FrancisPages.load_assigns(fn _ -> %{conn: 1} end, conn) end
     assert_raise ArgumentError, fn -> FrancisPages.load_assigns(fn _ -> :nope end, conn) end
+  end
+
+  test "list_pages" do
+    assert FrancisPages.TestRouter.list_pages() == [
+             {"/notes", "/notes"},
+             {"/notes/elixir/macros", "/notes/elixir/macros"},
+             {"/", "/"},
+             {"About us", "/about"},
+             {"/blog", "/blog"},
+             {"/blog/new", "/blog/new"},
+             {"/plain", "/plain"},
+             {"Team", "/team"},
+             {"/raw", "/raw"},
+             {"/raw/empty", "/raw/empty"}
+           ]
   end
 
   test "route mapping" do

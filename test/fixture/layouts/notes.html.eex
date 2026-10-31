@@ -1,1 +1,1 @@
-<html><body><nav>notes</nav><%= @inner_content %></body></html>
+<html><body><nav>notes<%= for {title, path} <- list_pages(), String.starts_with?(path, "/notes") do %> <a href="<%= path %>"><%= title %></a><% end %></nav><%= @inner_content %></body></html>

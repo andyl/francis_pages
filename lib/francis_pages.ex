@@ -1,5 +1,30 @@
 defmodule FrancisPages do
-  @moduledoc "File-based pages for a Francis router."
+  @moduledoc """
+  File-based pages for a Francis router.
+
+  `use FrancisPages` imports `pages/2`, and each `pages/2` call turns the
+  files in a directory into `get` routes at compile time.
+
+  ## Listing pages
+
+  `use FrancisPages` also defines `list_pages/0` in the router. It returns a
+  `{title, path}` tuple for each page with a fixed path, for building a
+  nav-bar:
+
+      MyApp.list_pages()
+      #=> [{"Home", "/"}, {"About us", "/about"}, {"Team", "/team"}]
+
+  - The title is the page's front matter `title`, or its path if it has none.
+    Titles set by an `:assigns` loader or a plug depend on the request, so
+    they aren't known when the list is built.
+  - Dynamic pages (`[slug]`, `[...path]`) are left out: they have no single
+    path to link to.
+  - Pages come in the order of the `pages/2` calls, and by path within one
+    call.
+
+  Layouts and EEx pages are compiled into the router, so they can call
+  `list_pages()` directly.
+  """
 
   @extensions ~w(.html .eex .md)
   @reserved ~w(conn params inner_content)a
@@ -13,6 +38,7 @@ defmodule FrancisPages do
 
       @pages_layouts unquote(layouts)
       Module.register_attribute(__MODULE__, :pages_sources, accumulate: true)
+      Module.register_attribute(__MODULE__, :pages_list, accumulate: true)
       @before_compile FrancisPages
 
       def __pages_no_layout__(assigns), do: assigns[:inner_content]
@@ -37,10 +63,19 @@ defmodule FrancisPages do
       |> check_unique!()
       |> Enum.sort_by(fn {route, _file} -> {rank(route), route} end)
 
+    pages = for {route, file} <- routes, do: {route, file, read_page(file)}
+
+    # Static pages only, for list_pages/0; a page without a front matter title is listed by its path
+    listed =
+      for {route, _file, {front_matter, _body, _line}} <- pages,
+          Enum.all?(rank(route), &(&1 == 0)) do
+        {to_string(front_matter[:title] || route), route}
+      end
+      |> Enum.sort_by(&elem(&1, 1))
+
     page_routes =
-      for {route, file} <- routes do
+      for {route, file, {front_matter, body, line}} <- pages do
         page_fun = :"__page_#{:erlang.phash2({prefix, file})}__"
-        {front_matter, body, line} = read_page(file)
 
         quote do
           @external_resource unquote(file)
@@ -63,6 +98,7 @@ defmodule FrancisPages do
 
     quote do
       @pages_sources {unquote(dir), unquote(hash(dir))}
+      @pages_list unquote(Macro.escape(listed))
       unquote(layout_def(layout, layout_fun))
       unquote_splicing(page_routes)
     end
@@ -70,8 +106,13 @@ defmodule FrancisPages do
 
   defmacro __before_compile__(env) do
     sources = Module.get_attribute(env.module, :pages_sources)
+    # Accumulated attributes come back newest first
+    listed = env.module |> Module.get_attribute(:pages_list) |> Enum.reverse() |> Enum.concat()
 
     quote do
+      @doc "`{title, path}` for each static page, in `pages/2` call order. See `FrancisPages`."
+      def list_pages, do: unquote(Macro.escape(listed))
+
       # Recompile when a page is added or removed, not just edited
       def __mix_recompile__? do
         Enum.any?(unquote(sources), fn {dir, hash} -> FrancisPages.hash(dir) != hash end)
